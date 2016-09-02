@@ -18,6 +18,20 @@ let fragmentId = -1;
 let activityInitialized = false;
 const CALLBACKS = "_callbacks";
 
+let idleHandler;
+function getIdleHandler() {
+   if (!idleHandler) {
+       idleHandler = new android.os.MessageQueue.IdleHandler({
+           queueIdle: function () {
+               gc();
+               return false;
+           }
+       });
+   }
+
+   return idleHandler;
+}
+
 function onFragmentShown(fragment: android.app.Fragment) {
     if (trace.enabled) {
         trace.write(`SHOWN ${fragment}`, trace.categories.NativeLifecycle);
@@ -261,6 +275,8 @@ export class Frame extends frameCommon.Frame {
         if (trace.enabled) {
             trace.write(`END TRANSACTION ${fragmentTransaction}`, trace.categories.Navigation);
         }
+
+        android.os.Looper.myQueue().addIdleHandler(getIdleHandler());
     }
 
     private static _clearHistory(fragment: android.app.Fragment) {
@@ -292,6 +308,8 @@ export class Frame extends frameCommon.Frame {
             // this handles cases where user may navigate to an inner page without adding it on the backstack
             manager.popBackStack(backstackEntry.fragmentTag, android.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
         }
+
+        android.os.Looper.myQueue().addIdleHandler(getIdleHandler());
     }
 
     public _createUI() {
